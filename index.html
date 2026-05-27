@@ -6,6 +6,13 @@
 
 <style>  
 
+#nameScreen {
+    display: none;
+}
+#mainUI {
+    display: none;
+}
+
 *{  
     margin:0;  
     padding:0;  
@@ -208,10 +215,33 @@ button:hover{
 
 }
 
-</style>  </head>  
-<body>  <canvas id="matrix"></canvas>
+</style>
+</head>  
+<body>  
+<div id="nameScreen" style="
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:#050505;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    z-index:99999;
+">
+    <h2 style="color:#00ff88;">VOIDROOM ACCESS</h2>
 
-<div class="container">  <div class="header">  
+    <input id="nameInput" placeholder="nickname"
+        style="padding:14px; margin-top:20px; background:#0f0f0f; color:white; border:1px solid #222;">
+
+    <button onclick="confirmName()" style="margin-top:15px;">
+        ENTER
+    </button>
+</div>
+<canvas id="matrix"></canvas>
+
+<div class="container" id="mainUI" style="display:none;"> <div class="header">  
     <div class="logo">  
         VOIDROOM  
     </div>  
@@ -224,11 +254,6 @@ button:hover{
 <div class="chat" id="chat"></div>  
 
 <div class="inputArea">  
-
-    <input  
-    type="text"  
-    id="username"  
-    placeholder="nickname">  
 
     <input  
     type="text"  
@@ -290,15 +315,18 @@ const db = getFirestore(app);
    USER DATA  
 ========================= */  
 
-const usernameInput =  
-document.getElementById("username");  
+const nameScreen = document.getElementById("nameScreen");
+const nameInput = document.getElementById("nameInput");
+const mainUI = document.getElementById("mainUI");
 
-const savedName =  
-localStorage.getItem("void_username");  
+const savedName = localStorage.getItem("void_username");
 
-if(savedName){  
-    usernameInput.value = savedName;  
-}  
+if (savedName) {
+    startApp(savedName);
+} else {
+    nameScreen.style.display = "flex";
+    mainUI.style.display = "none";
+}
 
 let userId = localStorage.getItem("void_userId");
 
@@ -309,6 +337,25 @@ if (!userId) {
 
 const onlineRef = doc(db, "onlineUsers", userId);
 
+function startApp(name) {
+    localStorage.setItem("void_username", name);
+    localStorage.setItem("void_hasJoined", "true");
+
+    nameScreen.style.display = "none";
+    mainUI.style.display = "flex";
+
+}
+
+window.confirmName = function () {
+    const name = nameInput.value.trim();
+
+    if (!name) {
+        alert("Enter nickname.");
+        return;
+    }
+
+    startApp(name);
+};
 
 /* =========================  
    ONLINE USERS  
@@ -458,8 +505,7 @@ data.created?.seconds
 window.sendMessage =  
 async function(){  
 
-    const username =  
-    usernameInput.value.trim();  
+const username = localStorage.getItem("void_username");
 
     const messageInput =  
     document.getElementById(  
@@ -482,6 +528,8 @@ async function(){
         "void_username",  
         username  
     );  
+    
+    localStorage.setItem("void_hasJoined", "true");
 
     /* COMMANDS */  
 
