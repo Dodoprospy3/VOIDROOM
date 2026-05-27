@@ -564,7 +564,7 @@ setInterval(async () => {
         online: true,
         lastSeen: Date.now()
     });
-}, 10000);
+}, 2000);
 
 window.addEventListener("beforeunload", async ()=>{  
 
@@ -580,7 +580,7 @@ onSnapshot(collection(db, "onlineUsers"), (snapshot) => {
 
     snapshot.forEach((doc) => {
         const data = doc.data();
-        if (now - data.lastSeen < 20000) {
+        if (now - data.lastSeen < 6000) {
             active++;
         }
     });
